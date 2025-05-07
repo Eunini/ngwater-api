@@ -9,7 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const AppError = require("./utils/appError");
-const globalErrorHandler = require("./utils/errorController");
+// const globalErrorHandler = require("./utils/errorController");
 const errorHandler = require("./middlewares/errorMiddleware");
 const { default: helmet } = require("helmet");
 const { connectDB, sequelize } = require("./config/db");
@@ -57,12 +57,12 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/projects", projectRoutes);
 
-// Health check
+// // Health check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
 
-// Test routes
+// // Test routes
 app.get("/", (req, res) => {
   res.send(`
     <h1>API Status: Running</h1>
@@ -87,16 +87,9 @@ app.get("/xampp-test", async (req, res, next) => {
   }
 });
 
-// Swagger Documentation
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Handle undefined routes
-app.all("*", (req, res, next) => {
-  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
-});
-
 // Error handling middleware
-app.use(globalErrorHandler);
 app.use(errorHandler);
 
 module.exports = app;
