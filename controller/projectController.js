@@ -1,23 +1,23 @@
-const { FormStageA } = require('../models/StageA.model');
-const {FormStageB} = require('../models/StageB.model');
-const { FormStageC } = require('../models/StageC.model');
+const { FormStageA } = require("../models/stageA.model");
+const { FormStageB } = require("../models/stageB.model");
+const { FormStageC } = require("../models/stageC.model");
 
-const { saveFile, deleteFile } = require('./fileController');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
+const { saveFile, deleteFile } = require("./fileController");
+const { v4: uuidv4 } = require("uuid");
+const path = require("path");
 
 // Create a new form (Stage A)
 exports.createForm = async (req, res) => {
   try {
     const form = await FormStageA.create({
       ...req.body,
-      userId: req.user.id
+      userId: req.user.id,
     });
-    
+
     res.status(201).json(form);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to create form' });
+    res.status(500).json({ error: "Failed to create form" });
   }
 };
 
@@ -25,18 +25,18 @@ exports.createForm = async (req, res) => {
 exports.updateStageA = async (req, res) => {
   try {
     const form = await FormStageA.findOne({
-      where: { id: req.params.id, userId: req.user.id }
+      where: { id: req.params.id, userId: req.user.id },
     });
-    
+
     if (!form) {
-      return res.status(404).json({ error: 'Form not found' });
+      return res.status(404).json({ error: "Form not found" });
     }
-    
+
     const updatedForm = await form.update(req.body);
     res.json(updatedForm);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to update form' });
+    res.status(500).json({ error: "Failed to update form" });
   }
 };
 
@@ -44,31 +44,31 @@ exports.updateStageA = async (req, res) => {
 exports.updateStageB = async (req, res) => {
   try {
     const stageA = await FormStageA.findOne({
-      where: { id: req.params.id, userId: req.user.id }
+      where: { id: req.params.id, userId: req.user.id },
     });
-    
+
     if (!stageA) {
-      return res.status(404).json({ error: 'Stage A not found' });
+      return res.status(404).json({ error: "Stage A not found" });
     }
-    
+
     let stageB = await FormStageB.findOne({
-      where: { formStageAId: req.params.id }
+      where: { formStageAId: req.params.id },
     });
-    
+
     if (stageB) {
       stageB = await stageB.update(req.body);
     } else {
       stageB = await FormStageB.create({
         ...req.body,
         formStageAId: req.params.id,
-        userId: req.user.id
+        userId: req.user.id,
       });
     }
-    
+
     res.json(stageB);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to update Stage B' });
+    res.status(500).json({ error: "Failed to update Stage B" });
   }
 };
 
@@ -76,50 +76,50 @@ exports.updateStageB = async (req, res) => {
 exports.updateStageC = async (req, res) => {
   try {
     const stageB = await FormStageB.findOne({
-      where: { id: req.params.id, userId: req.user.id }
+      where: { id: req.params.id, userId: req.user.id },
     });
-    
+
     if (!stageB) {
-      return res.status(404).json({ error: 'Stage B not found' });
+      return res.status(404).json({ error: "Stage B not found" });
     }
-    
+
     // Process file uploads
     const files = req.files;
     const filePaths = {};
-    
+
     if (files.labTestCertificate) {
       filePaths.labTestCertificatePath = await saveFile(
-        files.labTestCertificate[0], 
-        'certificates'
+        files.labTestCertificate[0],
+        "certificates"
       );
     }
-    
+
     if (files.rawLabSheet) {
       filePaths.rawLabSheetPath = await saveFile(
-        files.rawLabSheet[0], 
-        'labsheets'
+        files.rawLabSheet[0],
+        "labsheets"
       );
     }
-    
+
     if (files.samplingPointPhotos) {
       const photos = await Promise.all(
-        files.samplingPointPhotos.map(file => 
-          saveFile(file, 'sampling-photos')
+        files.samplingPointPhotos.map((file) =>
+          saveFile(file, "sampling-photos")
         )
       );
       filePaths.samplingPointPhotosPaths = photos;
     }
-    
+
     // Check if Stage C already exists
     let stageC = await FormStageC.findOne({
-      where: { formStageBId: req.params.id }
+      where: { formStageBId: req.params.id },
     });
-    
+
     if (stageC) {
       // Update existing Stage C
       stageC = await stageC.update({
         ...req.body,
-        ...filePaths
+        ...filePaths,
       });
     } else {
       // Create new Stage C
@@ -127,14 +127,14 @@ exports.updateStageC = async (req, res) => {
         ...req.body,
         ...filePaths,
         formStageBId: req.params.id,
-        userId: req.user.id
+        userId: req.user.id,
       });
     }
-    
+
     res.json(stageC);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to update Stage C' });
+    res.status(500).json({ error: "Failed to update Stage C" });
   }
 };
 
@@ -142,27 +142,27 @@ exports.updateStageC = async (req, res) => {
 exports.submitForm = async (req, res) => {
   try {
     const stageC = await FormStageC.findOne({
-      where: { id: req.params.id, userId: req.user.id }
+      where: { id: req.params.id, userId: req.user.id },
     });
-    
+
     if (!stageC) {
-      return res.status(404).json({ error: 'Form not found' });
+      return res.status(404).json({ error: "Form not found" });
     }
-    
+
     // Validate all required fields are completed
-    if (stageC.status !== 'completed') {
-      return res.status(400).json({ error: 'Form is not completed' });
+    if (stageC.status !== "completed") {
+      return res.status(400).json({ error: "Form is not completed" });
     }
-    
+
     // Update status to submitted
-    const updatedForm = await stageC.update({ status: 'submitted' });
-    
+    const updatedForm = await stageC.update({ status: "submitted" });
+
     // Here you could add notification logic, etc.
-    
+
     res.json(updatedForm);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to submit form' });
+    res.status(500).json({ error: "Failed to submit form" });
   }
 };
 
@@ -174,24 +174,24 @@ exports.getForm = async (req, res) => {
       include: [
         {
           model: FormStageB,
-          as: 'stageB',
-          required: false
+          as: "stageB",
+          required: false,
         },
         {
           model: FormStageC,
-          as: 'stageC',
-          required: false
-        }
-      ]
+          as: "stageC",
+          required: false,
+        },
+      ],
     });
-    
+
     if (!form) {
-      return res.status(404).json({ error: 'Form not found' });
+      return res.status(404).json({ error: "Form not found" });
     }
-    
+
     res.json(form);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to get form' });
+    res.status(500).json({ error: "Failed to get form" });
   }
 };
