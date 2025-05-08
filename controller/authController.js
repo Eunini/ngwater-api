@@ -20,7 +20,7 @@ const createSendToken = (user, statusCode, res) => {
     data: {
       user,
     },
-    redirectUrl: "/userdashboard", // This will be the page where you want the user to go after successful sign-up
+    redirectUrl: "/user-dashboard", // This will be the page where you want the user to go after successful sign-up
   });
 };
 
@@ -40,10 +40,6 @@ exports.signup = catchAsync(async (req, res, next) => {
     userLGA,
     address,
   } = req.body;
-
-  // if (password !== passwordConfirm) {
-  //   return next(new AppError('Passwords do not match', 400));
-  // }
 
   // Check for existing email
   const existingEmail = await User.findOne({ where: { email } });
